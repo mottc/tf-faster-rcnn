@@ -1,3 +1,4 @@
+#-*-coding:utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -6,10 +7,10 @@ import os
 import os.path as osp
 import numpy as np
 # `pip install easydict` if you don't have it
-from easydict import EasyDict as edict
+from easydict import EasyDict as edict #像访问属性一样访问dict变量
 
 __C = edict()
-# Consumers can get config by:
+# Consumers can get config by: 用户可以通过以下语句获取配置
 #   from fast_rcnn_config import cfg
 cfg = __C
 
@@ -18,95 +19,117 @@ cfg = __C
 #
 __C.TRAIN = edict()
 
-# Initial learning rate
+# Initial learning rate 学习率
 __C.TRAIN.LEARNING_RATE = 0.001
 
-# Momentum
+# Momentum 动量(?)
 __C.TRAIN.MOMENTUM = 0.9
 
-# Weight decay, for regularization
+# Weight decay, for regularization 权值衰减（用于正则化）
 __C.TRAIN.WEIGHT_DECAY = 0.0001
 
-# Factor for reducing the learning rate
+# Factor for reducing the learning rate 学习率衰减因子
 __C.TRAIN.GAMMA = 0.1
 
 # Step size for reducing the learning rate, currently only support one step
+# 学习率衰减步长
 __C.TRAIN.STEPSIZE = [30000]
 
 # Iteration intervals for showing the loss during training, on command line interface
+# 在命令窗口显示训练loss的间隔迭代数
 __C.TRAIN.DISPLAY = 10
 
 # Whether to double the learning rate for bias
+# 是否对偏移项使用双倍学习率
 __C.TRAIN.DOUBLE_BIAS = True
 
-# Whether to initialize the weights with truncated normal distribution 
+# Whether to initialize the weights with truncated normal distribution
+# 是否使用截尾正态分布初始化权值
 __C.TRAIN.TRUNCATED = False
 
 # Whether to have weight decay on bias as well
+# 是否对偏移项使用权重衰减
 __C.TRAIN.BIAS_DECAY = False
 
 # Whether to add ground truth boxes to the pool when sampling regions
+# 当采样区域时，是否在区域池化层中加入真实box(?)
 __C.TRAIN.USE_GT = False
 
 # Whether to use aspect-ratio grouping of training images, introduced merely for saving
-# GPU memory
+# GPU memory 是否对训练图像进行长宽比分组（仅为减少GPU显存占用而使用）
 __C.TRAIN.ASPECT_GROUPING = False
 
 # The number of snapshots kept, older ones are deleted to save space
+# 保存的snapshot数（为了节省空间，旧的会被删除）？
 __C.TRAIN.SNAPSHOT_KEPT = 3
 
 # The time interval for saving tensorflow summaries
+# 保存tf总结的迭代间距
 __C.TRAIN.SUMMARY_INTERVAL = 180
 
 # Scale to use during training (can list multiple scales)
 # The scale is the pixel size of an image's shortest side
+# 训练时使用的Scale（图像短边像素数）
 __C.TRAIN.SCALES = (600,)
 
 # Max pixel size of the longest side of a scaled input image
+# 按比例缩小输入图像后长边最大的像素数
 __C.TRAIN.MAX_SIZE = 1000
 
 # Images to use per minibatch
+# 每个nimibatch图像数
 __C.TRAIN.IMS_PER_BATCH = 1
 
 # Minibatch size (number of regions of interest [ROIs])
+# minibatch大小（roi数量）
 __C.TRAIN.BATCH_SIZE = 128
 
 # Fraction of minibatch that is labeled foreground (i.e. class > 0)
+# 部分minibatch标记为前景(?)（minibatch中标记为非背景的比例）
 __C.TRAIN.FG_FRACTION = 0.25
 
 # Overlap threshold for a ROI to be considered foreground (if >= FG_THRESH)
+# ROI被认定为前景的（与Ground Truth？）重叠阈值
 __C.TRAIN.FG_THRESH = 0.5
 
 # Overlap threshold for a ROI to be considered background (class = 0 if
-# overlap in [LO, HI))
+# overlap in [LO, HI))  ROI被认定为背景的重叠阈值
 __C.TRAIN.BG_THRESH_HI = 0.5
 __C.TRAIN.BG_THRESH_LO = 0.1
 
 # Use horizontally-flipped images during training?
+# 训练时是否使用水平翻转的图像
 __C.TRAIN.USE_FLIPPED = True
 
 # Train bounding-box regressors
+# 训练包围盒回归器
 __C.TRAIN.BBOX_REG = True
 
 # Overlap required between a ROI and ground-truth box in order for that ROI to
 # be used as a bounding-box regression training example
+# 将该ROI作为包围盒回归的训练样本，需要满足的ROI与ground-truth box重叠的阈值
 __C.TRAIN.BBOX_THRESH = 0.5
 
 # Iterations between snapshots
+# snapshot的迭代间隔(?)
 __C.TRAIN.SNAPSHOT_ITERS = 5000
 
 # solver.prototxt specifies the snapshot path prefix, this adds an optional
 # infix to yield the path: <prefix>[_<infix>]_iters_XYZ.caffemodel
+# solver.prototxt指定snapshot路径前缀，这个变量配置路径未固定的部分
 __C.TRAIN.SNAPSHOT_PREFIX = 'res101_faster_rcnn'
 
 # Normalize the targets (subtract empirical mean, divide by empirical stddev)
+# 目标归一化（减去先验均值，除以先验标准差）
 __C.TRAIN.BBOX_NORMALIZE_TARGETS = True
 
 # Deprecated (inside weights)
+# 已弃用（内部权重）
 __C.TRAIN.BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
 
 # Normalize the targets using "precomputed" (or made up) means and stdevs
 # (BBOX_NORMALIZE_TARGETS must also be True)
+# 通过预计算的均值和标准差进行目标归一化
 __C.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED = True
 
 __C.TRAIN.BBOX_NORMALIZE_MEANS = (0.0, 0.0, 0.0, 0.0)
@@ -114,6 +137,7 @@ __C.TRAIN.BBOX_NORMALIZE_MEANS = (0.0, 0.0, 0.0, 0.0)
 __C.TRAIN.BBOX_NORMALIZE_STDS = (0.1, 0.1, 0.2, 0.2)
 
 # Train using these proposals
+# 训练用候选区域
 __C.TRAIN.PROPOSAL_METHOD = 'gt'
 
 # Make minibatches from images that have similar aspect ratios (i.e. both
@@ -121,42 +145,54 @@ __C.TRAIN.PROPOSAL_METHOD = 'gt'
 # on zero-padding.
 
 # Use RPN to detect objects
+# 使用候选区域网络（Region Proposal Network）进行目标检测
 __C.TRAIN.HAS_RPN = True
 
 # IOU >= thresh: positive example
+# IOU >= thresh 认为是正样本
 __C.TRAIN.RPN_POSITIVE_OVERLAP = 0.7
 
 # IOU < thresh: negative example
+# IOU < thresh 认为是负样本
 __C.TRAIN.RPN_NEGATIVE_OVERLAP = 0.3
 
 # If an anchor satisfied by positive and negative conditions set to negative
+# 若一个anchor既满足正样本又满足负样本，设置为负样本
 __C.TRAIN.RPN_CLOBBER_POSITIVES = False
 
 # Max number of foreground examples
+# 最大前景样本数占比
 __C.TRAIN.RPN_FG_FRACTION = 0.5
 
 # Total number of examples
+# 总样本数
 __C.TRAIN.RPN_BATCHSIZE = 256
 
 # NMS threshold used on RPN proposals
+# RPN候选区域非最大值抑制阈值
 __C.TRAIN.RPN_NMS_THRESH = 0.7
 
 # Number of top scoring boxes to keep before apply NMS to RPN proposals
+# 对RPN候选区域使用NMS前，保留最高分数的区域的个数
 __C.TRAIN.RPN_PRE_NMS_TOP_N = 12000
 
 # Number of top scoring boxes to keep after applying NMS to RPN proposals
+# 对RPN候选区域使用NMS后，保留最高分数的区域的个数
 __C.TRAIN.RPN_POST_NMS_TOP_N = 2000
 
 # Deprecated (outside weights)
+# 已弃用（外侧权重）
 __C.TRAIN.RPN_BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
 
 # Give the positive RPN examples weight of p * 1 / {num positives}
 # and give negatives a weight of (1 - p)
 # Set to -1.0 to use uniform example weighting
+# 设为-1.0使用统一的样本权重
 __C.TRAIN.RPN_POSITIVE_WEIGHT = -1.0
 
 # Whether to use all ground truth bounding boxes for training, 
 # For COCO, setting USE_ALL_GT to False will exclude boxes that are flagged as ''iscrowd''
+# 是否使用所有的真实包围盒进行训练
 __C.TRAIN.USE_ALL_GT = True
 
 #
@@ -166,6 +202,7 @@ __C.TEST = edict()
 
 # Scale to use during testing (can NOT list multiple scales)
 # The scale is the pixel size of an image's shortest side
+# 测试时使用的Scale（图像短边像素数）
 __C.TEST.SCALES = (600,)
 
 # Max pixel size of the longest side of a scaled input image
@@ -251,7 +288,7 @@ __C.MOBILENET.DEPTH_MULTIPLIER = 1.
 # they were trained with
 __C.PIXEL_MEANS = np.array([[[102.9801, 115.9465, 122.7717]]])
 
-# For reproducibility
+# For reproducibility 随机种子（用于再现性）
 __C.RNG_SEED = 3
 
 # Root directory of project
