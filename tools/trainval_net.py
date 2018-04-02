@@ -1,19 +1,20 @@
+# -*- coding:utf-8 -*-  
 # --------------------------------------------------------
 # Tensorflow Faster R-CNN
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Zheqi He, Xinlei Chen, based on code from Ross Girshick
 # --------------------------------------------------------
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import #绝对引入
+from __future__ import division #精确除法
+from __future__ import print_function #print函数
 
 import _init_paths
 from model.train_val import get_training_roidb, train_net
 from model.config import cfg, cfg_from_file, cfg_from_list, get_output_dir, get_output_tb_dir
 from datasets.factory import get_imdb
 import datasets.imdb
-import argparse
-import pprint
+import argparse #命令解析库
+import pprint #打印模块
 import numpy as np
 import sys
 
@@ -22,35 +23,35 @@ from nets.vgg16 import vgg16
 from nets.resnet_v1 import resnetv1
 from nets.mobilenet_v1 import mobilenetv1
 
-def parse_args():
+def parse_args():#获取命令转换为参数
   """
   Parse input arguments
   """
   parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
   parser.add_argument('--cfg', dest='cfg_file',
                       help='optional config file',
-                      default=None, type=str)
+                      default=None, type=str) #配置文件
   parser.add_argument('--weight', dest='weight',
                       help='initialize with pretrained model weights',
-                      type=str)
+                      type=str) #（预训练的）初始化权值
   parser.add_argument('--imdb', dest='imdb_name',
                       help='dataset to train on',
-                      default='voc_2007_trainval', type=str)
+                      default='voc_2007_trainval', type=str) #数据集名称
   parser.add_argument('--imdbval', dest='imdbval_name',
                       help='dataset to validate on',
-                      default='voc_2007_test', type=str)
+                      default='voc_2007_test', type=str) #测试集名称
   parser.add_argument('--iters', dest='max_iters',
                       help='number of iterations to train',
-                      default=70000, type=int)
+                      default=70000, type=int) #迭代轮数
   parser.add_argument('--tag', dest='tag',
                       help='tag of the model',
-                      default=None, type=str)
+                      default=None, type=str) #模型标签(?)
   parser.add_argument('--net', dest='net',
                       help='vgg16, res50, res101, res152, mobile',
-                      default='res50', type=str)
+                      default='res50', type=str) #网络结构
   parser.add_argument('--set', dest='set_cfgs',
                       help='set config keys', default=None,
-                      nargs=argparse.REMAINDER)
+                      nargs=argparse.REMAINDER) #设置配置关键字(?)
 
   if len(sys.argv) == 1:
     parser.print_help()
@@ -60,7 +61,7 @@ def parse_args():
   return args
 
 
-def combined_roidb(imdb_names):
+def combined_roidb(imdb_names):#整合多个roidb（如果有的话）
   """
   Combine multiple roidbs
   """
@@ -73,7 +74,7 @@ def combined_roidb(imdb_names):
     roidb = get_training_roidb(imdb)
     return roidb
 
-  roidbs = [get_roidb(s) for s in imdb_names.split('+')]
+  roidbs = [get_roidb(s) for s in imdb_names.split('+')] #从数据集获取roi集
   roidb = roidbs[0]
   if len(roidbs) > 1:
     for r in roidbs[1:]:
@@ -101,11 +102,11 @@ if __name__ == '__main__':
 
   np.random.seed(cfg.RNG_SEED)
 
-  # train set
+  # train set 数据集
   imdb, roidb = combined_roidb(args.imdb_name)
   print('{:d} roidb entries'.format(len(roidb)))
 
-  # output directory where the models are saved
+  # output directory where the models are saved 模型保存路径
   output_dir = get_output_dir(imdb, args.tag)
   print('Output will be saved to `{:s}`'.format(output_dir))
 
@@ -114,13 +115,14 @@ if __name__ == '__main__':
   print('TensorFlow summaries will be saved to `{:s}`'.format(tb_dir))
 
   # also add the validation set, but with no flipping images
+  # 载入验证集，但不使用翻转图像
   orgflip = cfg.TRAIN.USE_FLIPPED
   cfg.TRAIN.USE_FLIPPED = False
   _, valroidb = combined_roidb(args.imdbval_name)
   print('{:d} validation roidb entries'.format(len(valroidb)))
   cfg.TRAIN.USE_FLIPPED = orgflip
 
-  # load network
+  # load network 载入模型
   if args.net == 'vgg16':
     net = vgg16()
   elif args.net == 'res50':
@@ -133,7 +135,8 @@ if __name__ == '__main__':
     net = mobilenetv1()
   else:
     raise NotImplementedError
-    
+
+  #训练网络
   train_net(net, imdb, roidb, valroidb, output_dir, tb_dir,
             pretrained_model=args.weight,
             max_iters=args.max_iters)
