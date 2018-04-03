@@ -111,7 +111,7 @@ __C.TRAIN.BBOX_REG = True
 __C.TRAIN.BBOX_THRESH = 0.5
 
 # Iterations between snapshots
-# snapshot的迭代间隔(?)
+# snapshot的迭代间隔
 __C.TRAIN.SNAPSHOT_ITERS = 5000
 
 # solver.prototxt specifies the snapshot path prefix, this adds an optional
@@ -210,13 +210,17 @@ __C.TEST.MAX_SIZE = 1000
 
 # Overlap threshold used for non-maximum suppression (suppress boxes with
 # IoU >= this threshold)
+
+#非极大抑制的重叠阈值
 __C.TEST.NMS = 0.3
 
 # Experimental: treat the (K+1) units in the cls_score layer as linear
 # predictors (trained, eg, with one-vs-rest SVMs).
+# ？
 __C.TEST.SVM = False
 
 # Test using bounding-box regressors
+# 测试时使用包围框回归
 __C.TEST.BBOX_REG = True
 
 # Propose boxes

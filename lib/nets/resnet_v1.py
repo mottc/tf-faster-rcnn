@@ -1,3 +1,4 @@
+#-*- coding:utf-8 -*-
 # --------------------------------------------------------
 # Tensorflow Faster R-CNN
 # Licensed under The MIT License [see LICENSE for details]
@@ -152,10 +153,13 @@ class resnetv1(Network):
       raise NotImplementedError
 
   def get_variables_to_restore(self, variables, var_keep_dic):
+    #_variables_to_fix为字典，用于记录需要修改的变量。
+    
     variables_to_restore = []
 
     for v in variables:
       # exclude the first conv layer to swap RGB to BGR
+      # 排除第一卷积层，用于转换RGB和BGR
       if v.name == (self._scope + '/conv1/weights:0'):
         self._variables_to_fix[v.name] = v
         continue
@@ -173,6 +177,7 @@ class resnetv1(Network):
         conv1_rgb = tf.get_variable("conv1_rgb", [7, 7, 3, 64], trainable=False)
         restorer_fc = tf.train.Saver({self._scope + "/conv1/weights": conv1_rgb})
         restorer_fc.restore(sess, pretrained_model)
-
+        #tf.assign（A,B）将A的值变为B
+        #tf.reverse沿某维度进行序列反转（即将RGB转为BGR）
         sess.run(tf.assign(self._variables_to_fix[self._scope + '/conv1/weights:0'], 
                            tf.reverse(conv1_rgb, [2])))
