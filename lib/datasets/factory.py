@@ -16,7 +16,8 @@ from datasets.coco import coco
 
 import numpy as np
 
-# Set up voc_<year>_<split> 
+# Set up voc_<year>_<split>
+## 把voc_2007/2012_train/val/traincal/test组合起来来加载数据
 for year in ['2007', '2012']:
   for split in ['train', 'val', 'trainval', 'test']:
     name = 'voc_{}_{}'.format(year, split)
@@ -42,6 +43,7 @@ for year in ['2015']:
 
 def get_imdb(name):
   """Get an imdb (image database) by name."""
+  ## __sets为一个dict，在本文件中可以看到在该dict中存了几个dataset名称，has_key有该key值为true，否则为flase
   if name not in __sets:
     raise KeyError('Unknown dataset: {}'.format(name))
   return __sets[name]()
