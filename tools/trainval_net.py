@@ -52,7 +52,7 @@ def parse_args():#获取命令转换为参数
   parser.add_argument('--set', dest='set_cfgs',
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER) #设置配置关键字(?)
-
+  ## 如果sys.argv长度为1,则说明没有参数传入，系统会退出
   if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
@@ -67,10 +67,14 @@ def combined_roidb(imdb_names):#整合多个roidb（如果有的话）
   """
 
   def get_roidb(imdb_name):
+    ## imdb为存在一个字典(easydict)里的pascal_voc类的一个对象，e.g.{voc_2007_train:内容，voc_2007_val:内容，voc_2007_test:内容,voc_2007_test:内容,voc_2012_train:内容...}
+    ## 内容里有该类里的各种self名称与操作，包括roi信息等等
     imdb = get_imdb(imdb_name)
     print('Loaded dataset `{:s}` for training'.format(imdb.name))
     imdb.set_proposal_method(cfg.TRAIN.PROPOSAL_METHOD)
     print('Set proposal method: {:s}'.format(cfg.TRAIN.PROPOSAL_METHOD))
+    ## get_training_roidb函数返回imdb对象的各种roi与图片信息，用于训练
+    ## 这是一个列表，列表中存的是各个图片的字典，字典中存roi信息，字典引索为图片引索
     roidb = get_training_roidb(imdb)
     return roidb
 
@@ -91,7 +95,7 @@ if __name__ == '__main__':
 
   print('Called with args:')
   print(args)
-
+  ## 如果还有其他配置文件，就加载
   if args.cfg_file is not None:
     cfg_from_file(args.cfg_file)
   if args.set_cfgs is not None:

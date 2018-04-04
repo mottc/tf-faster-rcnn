@@ -22,12 +22,15 @@ import uuid
 from .voc_eval import voc_eval
 from model.config import cfg
 
-
+## pascal_voc继承imdb
 class pascal_voc(imdb):
+  ##  传进来的第一个参数为数据集名称（train，val，trainval, test...），第二个参数为版本，如2007,2012
   def __init__(self, image_set, year, use_diff=False):
     name = 'voc_' + year + '_' + image_set
     if use_diff:
       name += '_diff'
+
+    ## 调用imdb的构造函数,传进去参数格式为“voc_year_imageset”--例如voc_2007_train,记录了name，其余的为默认,
     imdb.__init__(self, name)
     self._year = year
     self._image_set = image_set
@@ -39,11 +42,16 @@ class pascal_voc(imdb):
                      'cow', 'diningtable', 'dog', 'horse',
                      'motorbike', 'person', 'pottedplant',
                      'sheep', 'sofa', 'train', 'tvmonitor')
+    ## 在imdb中定义self.classes即为self._classes,self.num_classes为len(self._classes)
+    ## self._class_to_ind里存的是{'__background__'：0,'aeroplane'：1.....}
     self._class_to_ind = dict(list(zip(self.classes, list(range(self.num_classes)))))
+    ## 图片格式
     self._image_ext = '.jpg'
+    ## 一个列表，包含对应数据集图像名称信息，如[000001,000007,...,000267]
     self._image_index = self._load_image_set_index()
     # Default to roidb handler
     self._roidb_handler = self.gt_roidb
+    ## 生成一个随机的uuid，即对于分布式数据，每个数据都有自己对应的唯一的标识符,uuid4是根据随机数生成机制
     self._salt = str(uuid.uuid4())
     self._comp_id = 'comp4'
 
@@ -59,12 +67,14 @@ class pascal_voc(imdb):
     assert os.path.exists(self._data_path), \
       'Path does not exist: {}'.format(self._data_path)
 
+  ## 重载了imdb.py中定义，返回图片所在全路径
   def image_path_at(self, i):
     """
     Return the absolute path to image i in the image sequence.
     """
     return self.image_path_from_index(self._image_index[i])
 
+  ## image_path_at中调用，组合图片所在全路径
   def image_path_from_index(self, index):
     """
     Construct an image path from the image's "index" identifier.
@@ -86,6 +96,9 @@ class pascal_voc(imdb):
     assert os.path.exists(image_set_file), \
       'Path does not exist: {}'.format(image_set_file)
     with open(image_set_file) as f:
+      ## x.strip()就是当括号内为空就删除x开头与结尾的（'/n'，'/t',' '）
+      ## 如果括号内有不为空，x.strip(XX)就在x的开头和结尾删除XX
+      ## 还有只管开头lstrip(),结尾rstrip()
       image_index = [x.strip() for x in f.readlines()]
     return image_index
 
@@ -111,9 +124,11 @@ class pascal_voc(imdb):
       print('{} gt roidb loaded from {}'.format(self.name, cache_file))
       return roidb
 
+    ## self._load_pascal_annotation(index)返回的是该图片信息dict，然后按顺序存进一个list，图片信息引索与self.image_index引索相对应
     gt_roidb = [self._load_pascal_annotation(index)
                 for index in self.image_index]
     with open(cache_file, 'wb') as fid:
+      # 将gt_roidb存入临时文件cache_file
       pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
     print('wrote gt roidb to {}'.format(cache_file))
 
@@ -144,10 +159,12 @@ class pascal_voc(imdb):
     format.
     """
     filename = os.path.join(self._data_path, 'Annotations', index + '.xml')
+    ##  用xml.etree.ElementTree打开XML文件
     tree = ET.parse(filename)
     objs = tree.findall('object')
     if not self.config['use_diff']:
       # Exclude the samples labeled as difficult
+      ## xml文件中该object有一个属性difficult，1表示目标难以区分，0表示容易识别。该操作就是要吧有difficult的目标给剔除
       non_diff_objs = [
         obj for obj in objs if int(obj.find('difficult').text) == 0]
       # if len(non_diff_objs) != len(objs):
@@ -155,7 +172,7 @@ class pascal_voc(imdb):
       #         len(objs) - len(non_diff_objs))
       objs = non_diff_objs
     num_objs = len(objs)
-
+    ## 以0初始化box,数量为num_objs
     boxes = np.zeros((num_objs, 4), dtype=np.uint16)
     gt_classes = np.zeros((num_objs), dtype=np.int32)
     overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
@@ -163,19 +180,25 @@ class pascal_voc(imdb):
     seg_areas = np.zeros((num_objs), dtype=np.float32)
 
     # Load object bounding boxes into a data frame.
+    ## 遍历objs
     for ix, obj in enumerate(objs):
+      ## 取出每个obj的box边界
       bbox = obj.find('bndbox')
       # Make pixel indexes 0-based
       x1 = float(bbox.find('xmin').text) - 1
       y1 = float(bbox.find('ymin').text) - 1
       x2 = float(bbox.find('xmax').text) - 1
       y2 = float(bbox.find('ymax').text) - 1
+      ## 根据类别名称，找到对应id
       cls = self._class_to_ind[obj.find('name').text.lower().strip()]
       boxes[ix, :] = [x1, y1, x2, y2]
       gt_classes[ix] = cls
+      ## 生成类似与one-hot编码[[0,0,0,0,1,0,0,0,][0,0,0,0,1,0,0,0,]]
       overlaps[ix, cls] = 1.0
+      # bbox面积
       seg_areas[ix] = (x2 - x1 + 1) * (y2 - y1 + 1)
 
+    ## 稀疏矩阵压缩
     overlaps = scipy.sparse.csr_matrix(overlaps)
 
     return {'boxes': boxes,
@@ -191,6 +214,7 @@ class pascal_voc(imdb):
 
   def _get_voc_results_file_template(self):
     # VOCdevkit/results/VOC2007/Main/<comp_id>_det_test_aeroplane.txt
+    ## 生成空结果文件
     filename = self._get_comp_id() + '_det_' + self._image_set + '_{:s}.txt'
     path = os.path.join(
       self._devkit_path,
@@ -201,6 +225,7 @@ class pascal_voc(imdb):
     return path
 
   def _write_voc_results_file(self, all_boxes):
+    ## 按类别把结果写入文件
     for cls_ind, cls in enumerate(self.classes):
       if cls == '__background__':
         continue
@@ -208,6 +233,7 @@ class pascal_voc(imdb):
       filename = self._get_voc_results_file_template().format(cls)
       with open(filename, 'wt') as f:
         for im_ind, index in enumerate(self.image_index):
+          ## 取出某一图片中某一类别对应的所有box
           dets = all_boxes[cls_ind][im_ind]
           if dets == []:
             continue
@@ -246,6 +272,7 @@ class pascal_voc(imdb):
         use_07_metric=use_07_metric, use_diff=self.config['use_diff'])
       aps += [ap]
       print(('AP for {} = {:.4f}'.format(cls, ap)))
+      ## 结果写入output_dir
       with open(os.path.join(output_dir, cls + '_pr.pkl'), 'wb') as f:
         pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
     print(('Mean AP = {:.4f}'.format(np.mean(aps))))
@@ -279,7 +306,9 @@ class pascal_voc(imdb):
     status = subprocess.call(cmd, shell=True)
 
   def evaluate_detections(self, all_boxes, output_dir):
+    ## 先生成结果文件
     self._write_voc_results_file(all_boxes)
+    ## 评估
     self._do_python_eval(output_dir)
     if self.config['matlab_eval']:
       self._do_matlab_eval(output_dir)
@@ -288,6 +317,7 @@ class pascal_voc(imdb):
         if cls == '__background__':
           continue
         filename = self._get_voc_results_file_template().format(cls)
+        ## 删除文件
         os.remove(filename)
 
   def competition_mode(self, on):
