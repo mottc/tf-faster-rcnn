@@ -99,7 +99,8 @@ if __name__ == '__main__':
 
   print('Using config:')
   pprint.pprint(cfg)
-
+  
+  #设置随机种子
   np.random.seed(cfg.RNG_SEED)
 
   # train set 数据集
@@ -110,7 +111,7 @@ if __name__ == '__main__':
   output_dir = get_output_dir(imdb, args.tag)
   print('Output will be saved to `{:s}`'.format(output_dir))
 
-  # tensorboard directory where the summaries are saved during training
+  # tensorboard directory where the summaries are saved during training 训练总结保存路径
   tb_dir = get_output_tb_dir(imdb, args.tag)
   print('TensorFlow summaries will be saved to `{:s}`'.format(tb_dir))
 
