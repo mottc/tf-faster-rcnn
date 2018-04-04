@@ -89,12 +89,15 @@ class SolverWrapper(object):
 
 
   def from_snapshot(self, sess, sfile, nfile):
+    #从保存的snapshot快照中读取信息
+    #读取checkpoint模型文件的信息
     print('Restoring model snapshots from {:s}'.format(sfile))
     self.saver.restore(sess, sfile)
     print('Restored.')
     # Needs to restore the other hyper-parameters/states for training, (TODO xinlei) I have
     # tried my best to find the random states so that it can be recovered exactly
     # However the Tensorflow state is currently not available
+    # 读取其他超参数信息，并设置随机数状态
     with open(nfile, 'rb') as fid:
       st0 = pickle.load(fid)
       cur = pickle.load(fid)
@@ -388,6 +391,7 @@ def filter_roidb(roidb):
   """Remove roidb entries that have no usable RoIs."""
   # 移除未使用的roi
   def is_valid(entry):
+    # 待注释：需要roidb相关代码内容
     # Valid images have:
     #   (1) At least one foreground RoI OR
     #   (2) At least one background RoI

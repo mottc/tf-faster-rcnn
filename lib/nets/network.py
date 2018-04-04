@@ -1,8 +1,19 @@
+#-*-coding:utf-8 -*-
 # --------------------------------------------------------
 # Tensorflow Faster R-CNN
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Xinlei Chen
 # --------------------------------------------------------
+
+#---------------------------------------------------------
+#注释备忘录
+#1.gt_image的用途?来源？（visualization模块）
+#2._predictions的内容？（具体网络模块，resnet_v1.py)
+#3._im_info具体含义？
+#4.tag的内容？含义？
+#5.anchor/RPN/RCNN/cls具体细节？
+#---------------------------------------------------------
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -37,21 +48,29 @@ class Network(object):
     self._event_summaries = {}
     self._variables_to_fix = {}
 
+  # 添加gt图像
   def _add_gt_image(self):
     # add back mean
+    # 加回像素均值（？）
     image = self._image + cfg.PIXEL_MEANS
     # BGR to RGB (opencv uses BGR)
+    # BGR转换为RGB
+    # tf.image.resize_bilinear使用双线性插值算法resize image
     resized = tf.image.resize_bilinear(image, tf.to_int32(self._im_info[:2] / self._im_info[2]))
     self._gt_image = tf.reverse(resized, axis=[-1])
 
+  # 使用可视化功能可视化box
   def _add_gt_image_summary(self):
     # use a customized visualization function to visualize the boxes
     if self._gt_image is None:
       self._add_gt_image()
+
+    # tf.py_func() 将py函数转换为tf操作符op
+    # 待注释：draw_bounding_boxes位于utils.visualization模块
     image = tf.py_func(draw_bounding_boxes, 
                       [self._gt_image, self._gt_boxes, self._im_info],
                       tf.float32, name="gt_boxes")
-    
+    # 返回tensorboard图像总结
     return tf.summary.image('GROUND_TRUTH', image)
 
   def _add_act_summary(self, tensor):
@@ -210,33 +229,47 @@ class Network(object):
       self._anchors = anchors
       self._anchor_length = anchor_length
 
+  # 建立网络
   def _build_network(self, is_training=True):
     # select initializers
     if cfg.TRAIN.TRUNCATED:
+      # 使用截尾正态分布初始化权值
       initializer = tf.truncated_normal_initializer(mean=0.0, stddev=0.01)
       initializer_bbox = tf.truncated_normal_initializer(mean=0.0, stddev=0.001)
     else:
+      # 使用标准正态分布初始化权值
       initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
       initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
 
+    # _image_to_head建立head网络（？）：不同网络有不同实现。
     net_conv = self._image_to_head(is_training)
+    
     with tf.variable_scope(self._scope, self._scope):
+      
       # build the anchors for the image
+      # 建立图像anchors
       self._anchor_component()
+      
       # region proposal network
+      # 候选区域网络
       rois = self._region_proposal(net_conv, is_training, initializer)
+      
       # region of interest pooling
+      # ROI池化
       if cfg.POOLING_MODE == 'crop':
         pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
       else:
         raise NotImplementedError
-
+      
+    #建立head-tail网络：不同网络有不同实现。
     fc7 = self._head_to_tail(pool5, is_training)
     with tf.variable_scope(self._scope, self._scope):
       # region classification
+      # 区域分类
       cls_prob, bbox_pred = self._region_classification(fc7, is_training, 
                                                         initializer, initializer_bbox)
 
+    # 将预测_predictions加入得分字典
     self._score_summaries.update(self._predictions)
 
     return rois, cls_prob, bbox_pred
@@ -256,9 +289,12 @@ class Network(object):
     ))
     return loss_box
 
+  # 建立损失函数
   def _add_losses(self, sigma_rpn=3.0):
     with tf.variable_scope('LOSS_' + self._tag) as scope:
       # RPN, class loss
+      # RPN 候选网络区域
+      # 类别损失（待细化）
       rpn_cls_score = tf.reshape(self._predictions['rpn_cls_score_reshape'], [-1, 2])
       rpn_label = tf.reshape(self._anchor_targets['rpn_labels'], [-1])
       rpn_select = tf.where(tf.not_equal(rpn_label, -1))
@@ -267,24 +303,29 @@ class Network(object):
       rpn_cross_entropy = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
 
+      # 包围框损失（待细化）
       # RPN, bbox loss
       rpn_bbox_pred = self._predictions['rpn_bbox_pred']
       rpn_bbox_targets = self._anchor_targets['rpn_bbox_targets']
       rpn_bbox_inside_weights = self._anchor_targets['rpn_bbox_inside_weights']
       rpn_bbox_outside_weights = self._anchor_targets['rpn_bbox_outside_weights']
+      # 待注释：L1平滑（？）
       rpn_loss_box = self._smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights,
                                           rpn_bbox_outside_weights, sigma=sigma_rpn, dim=[1, 2, 3])
 
       # RCNN, class loss
+      # RCNN类别损失（待细化）
       cls_score = self._predictions["cls_score"]
       label = tf.reshape(self._proposal_targets["labels"], [-1])
       cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
 
       # RCNN, bbox loss
+      # RCNN包围框损失（待细化）
       bbox_pred = self._predictions['bbox_pred']
       bbox_targets = self._proposal_targets['bbox_targets']
       bbox_inside_weights = self._proposal_targets['bbox_inside_weights']
       bbox_outside_weights = self._proposal_targets['bbox_outside_weights']
+      # 待注释：L1平滑（？）
       loss_box = self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
 
       self._losses['cross_entropy'] = cross_entropy
@@ -296,6 +337,7 @@ class Network(object):
       regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
       self._losses['total_loss'] = loss + regularization_loss
 
+      # 记录loss
       self._event_summaries.update(self._losses)
 
     return loss
@@ -363,11 +405,24 @@ class Network(object):
   def _head_to_tail(self, pool5, is_training, reuse=None):
     raise NotImplementedError
 
+  # 建立网络结构计算图
+  """
+  参数：
+    mode 模式（？）
+    num_classes 分类个数
+    tag 标签（？）
+    anchor_scales anchor的不同缩放
+    anchor_ratios anchor的不同长宽比
+  """
   def create_architecture(self, mode, num_classes, tag=None,
                           anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2)):
+    # 输入图像
     self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
+    # 输入图像信息（？）
     self._im_info = tf.placeholder(tf.float32, shape=[3])
+    # ？
     self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 5])
+    # ？
     self._tag = tag
 
     self._num_classes = num_classes
@@ -377,58 +432,84 @@ class Network(object):
 
     self._anchor_ratios = anchor_ratios
     self._num_ratios = len(anchor_ratios)
-
+    #anchor的数量 = 缩放数量 * 长宽比数
     self._num_anchors = self._num_scales * self._num_ratios
-
+    #设置训练 or 测试标志位
     training = mode == 'TRAIN'
     testing = mode == 'TEST'
 
     assert tag != None
 
     # handle most of the regularizers here
+    # 处理所有正则化
+    # 权重正则化（L2正则），WEIGHT_DECAY权重衰减因子。
     weights_regularizer = tf.contrib.layers.l2_regularizer(cfg.TRAIN.WEIGHT_DECAY)
+    # 偏移量正则化
     if cfg.TRAIN.BIAS_DECAY:
       biases_regularizer = weights_regularizer
     else:
       biases_regularizer = tf.no_regularizer
 
     # list as many types of layers as possible, even if they are not used now
-    with arg_scope([slim.conv2d, slim.conv2d_in_plane, \
-                    slim.conv2d_transpose, slim.separable_conv2d, slim.fully_connected], 
+    # 尽量包含多种类型的层（即便目前尚未使用）
+    # arg_scope为给定的操作（op）层设置默认参数
+    with arg_scope([slim.conv2d, #标准卷积层
+                    slim.conv2d_in_plane, #平面卷积（独立的对每一个channel执行相同的一个2D卷积 instead of 3D卷积）
+                    slim.conv2d_transpose, #反卷积
+                    slim.separable_conv2d, #深度可分卷积（深度卷积+1*1卷积）
+                    slim.fully_connected ], #全连接 
                     weights_regularizer=weights_regularizer,
                     biases_regularizer=biases_regularizer, 
-                    biases_initializer=tf.constant_initializer(0.0)): 
+                    biases_initializer=tf.constant_initializer(0.0)):
+      #建立模型
       rois, cls_prob, bbox_pred = self._build_network(training)
 
+    # 网络输出
     layers_to_output = {'rois': rois}
 
+    # 获取训练变量并记录
     for var in tf.trainable_variables():
       self._train_summaries.append(var)
 
     if testing:
+      #np.tile（A,b)将数组A沿各个维度复制b倍
+      #BBOX_NORMALIZE_STDS 包围框归一化方差 BBOX_NORMALIZE_MEANS 包围框归一化均值
+      #stds、means为一维数组，大小为 4 * self._num_classes。
       stds = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_STDS), (self._num_classes))
       means = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_MEANS), (self._num_classes))
+      # _predictions(?)
       self._predictions["bbox_pred"] *= stds
       self._predictions["bbox_pred"] += means
     else:
+      # 添加损失函数
       self._add_losses()
+      # 向输出字典中添加loss字典
       layers_to_output.update(self._losses)
 
+      #总结变量
       val_summaries = []
       with tf.device("/cpu:0"):
+        # 添加gt图像总结
         val_summaries.append(self._add_gt_image_summary())
+        # 记录_event_summaries标量总结（目前看来_event_summaries只保存了loss）
         for key, var in self._event_summaries.items():
           val_summaries.append(tf.summary.scalar(key, var))
+        # 记录得分总结（候选框得分，预测框得分，anchor得分）
         for key, var in self._score_summaries.items():
           self._add_score_summary(key, var)
+        # 记录rpn总结（？）
         for var in self._act_summaries:
           self._add_act_summary(var)
+        # 记录训练变量总结
         for var in self._train_summaries:
           self._add_train_summary(var)
-
+          
+      # 合并所有总结
       self._summary_op = tf.summary.merge_all()
+      # 合并val_summaries总结
       self._summary_op_val = tf.summary.merge(val_summaries)
 
+    #向输出字典中添加预测字典
     layers_to_output.update(self._predictions)
 
     return layers_to_output
