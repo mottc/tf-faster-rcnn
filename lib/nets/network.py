@@ -9,9 +9,9 @@
 #注释备忘录
 #1.gt_image的用途?来源？（visualization模块）
 #2._predictions的内容？（具体网络模块，resnet_v1.py)
-#3._im_info具体含义？
-#4.tag的内容？含义？
-#5.anchor/RPN/RCNN/cls具体细节？
+#3.生成anchor函数generate_anchors_pre（位于layer_utils.snippets模块）
+#4.生成候选区域的层proposal_layer（位于layer_utils.proposal_layer 模块）
+#5.tag的内容？含义？
 #---------------------------------------------------------
 
 from __future__ import absolute_import
@@ -40,8 +40,10 @@ class Network(object):
     self._losses = {}
     self._anchor_targets = {}
     self._proposal_targets = {}
+    # _layers['head'] 头网络计算图
     self._layers = {}
     self._gt_image = None
+    #_act_summaries：[头网络图，rpn第一层网络]
     self._act_summaries = []
     self._score_summaries = {}
     self._train_summaries = []
@@ -84,15 +86,19 @@ class Network(object):
   def _add_train_summary(self, var):
     tf.summary.histogram('TRAIN/' + var.op.name, var)
 
+  # 层reshape
   def _reshape_layer(self, bottom, num_dim, name):
     input_shape = tf.shape(bottom)
     with tf.variable_scope(name) as scope:
       # change the channel to the caffe format
+      # 将通道转换为caffe格式
       to_caffe = tf.transpose(bottom, [0, 3, 1, 2])
       # then force it to have channel 2
+      # 强制其拥有通道2（？）
       reshaped = tf.reshape(to_caffe,
                             tf.concat(axis=0, values=[[1, num_dim, -1], [input_shape[2]]]))
       # then swap the channel back
+      # 再将channel转换回去
       to_tf = tf.transpose(reshaped, [0, 2, 3, 1])
       return to_tf
 
@@ -119,6 +125,7 @@ class Network(object):
 
     return rois, rpn_scores
 
+  #生成候选区域的层
   def _proposal_layer(self, rpn_cls_prob, rpn_bbox_pred, name):
     with tf.variable_scope(name) as scope:
       rois, rpn_scores = proposal_layer(
@@ -136,17 +143,22 @@ class Network(object):
     return rois, rpn_scores
 
   # Only use it if you have roi_pooling op written in tf.image
+  # 仅在tf.image中存在roi_poolingc操作符时使用
   def _roi_pool_layer(self, bootom, rois, name):
     with tf.variable_scope(name) as scope:
       return tf.image.roi_pooling(bootom, rois,
                                   pooled_height=cfg.POOLING_SIZE,
                                   pooled_width=cfg.POOLING_SIZE,
                                   spatial_scale=1. / 16.)[0]
-
+    
+  # ROI Pooling层
   def _crop_pool_layer(self, bottom, rois, name):
     with tf.variable_scope(name) as scope:
+      # tf.slice抽取第一维[0:-1],第二维[0:1]的数据
+      # tf.squeeze删除所有大小为1的维度
       batch_ids = tf.squeeze(tf.slice(rois, [0, 0], [-1, 1], name="batch_id"), [1])
       # Get the normalized coordinates of bounding boxes
+      # 获取包围框归一化后的坐标系（待细化）
       bottom_shape = tf.shape(bottom)
       height = (tf.to_float(bottom_shape[1]) - 1.) * np.float32(self._feat_stride[0])
       width = (tf.to_float(bottom_shape[2]) - 1.) * np.float32(self._feat_stride[0])
@@ -155,10 +167,13 @@ class Network(object):
       x2 = tf.slice(rois, [0, 3], [-1, 1], name="x2") / width
       y2 = tf.slice(rois, [0, 4], [-1, 1], name="y2") / height
       # Won't be back-propagated to rois anyway, but to save time
+      # 不再对rois反向传播（以节省时间？）
       bboxes = tf.stop_gradient(tf.concat([y1, x1, y2, x2], axis=1))
+      # POOLING_SIZE 池化后区域大小
       pre_pool_size = cfg.POOLING_SIZE * 2
+      # 剪裁并通过插值方法调整尺寸
       crops = tf.image.crop_and_resize(bottom, bboxes, tf.to_int32(batch_ids), [pre_pool_size, pre_pool_size], name="crops")
-
+      # 返回最大池化后的结果
     return slim.max_pool2d(crops, [2, 2], padding='SAME')
 
   def _dropout_layer(self, bottom, name, ratio=0.5):
@@ -215,8 +230,10 @@ class Network(object):
   def _anchor_component(self):
     with tf.variable_scope('ANCHOR_' + self._tag) as scope:
       # just to get the shape right
+      # 窗口的高宽（？）
       height = tf.to_int32(tf.ceil(self._im_info[0] / np.float32(self._feat_stride[0])))
       width = tf.to_int32(tf.ceil(self._im_info[1] / np.float32(self._feat_stride[0])))
+      # 生成anchor
       anchors, anchor_length = generate_anchors_pre(
         height,
         width,
@@ -241,7 +258,7 @@ class Network(object):
       initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
       initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
 
-    # _image_to_head建立head网络（？）：不同网络有不同实现。
+    # _image_to_head建立head网络（卷积池化层）：不同网络有不同实现。
     net_conv = self._image_to_head(is_training)
     
     with tf.variable_scope(self._scope, self._scope):
@@ -261,7 +278,7 @@ class Network(object):
       else:
         raise NotImplementedError
       
-    #建立head-tail网络：不同网络有不同实现。
+    #建立head-tail网络（全连接层）：不同网络有不同实现。
     fc7 = self._head_to_tail(pool5, is_training)
     with tf.variable_scope(self._scope, self._scope):
       # region classification
@@ -342,28 +359,42 @@ class Network(object):
 
     return loss
 
+  #建立候选区域网络
   def _region_proposal(self, net_conv, is_training, initializer):
+    # RPN_CHANNELS 卷积核个数（512）
+    # 卷积层（核大小3*3）,获取rpn
     rpn = slim.conv2d(net_conv, cfg.RPN_CHANNELS, [3, 3], trainable=is_training, weights_initializer=initializer,
                         scope="rpn_conv/3x3")
     self._act_summaries.append(rpn)
+    # 卷积层（核大小1*1），个数anchor个数两倍
     rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
                                 padding='VALID', activation_fn=None, scope='rpn_cls_score')
+    
     # change it so that the score has 2 as its channel size
+    # 将score的大小设置为其channel大小的两倍（？）
     rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
+    # softmax预测层
     rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape")
+    # 返回两个score的最大值下标
     rpn_cls_pred = tf.argmax(tf.reshape(rpn_cls_score_reshape, [-1, 2]), axis=1, name="rpn_cls_pred")
+    # ？
     rpn_cls_prob = self._reshape_layer(rpn_cls_prob_reshape, self._num_anchors * 2, "rpn_cls_prob")
+    #包围盒预测
     rpn_bbox_pred = slim.conv2d(rpn, self._num_anchors * 4, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
                                 padding='VALID', activation_fn=None, scope='rpn_bbox_pred')
+    
     if is_training:
+      # 对于训练建立候选区域层和label
       rois, roi_scores = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
       rpn_labels = self._anchor_target_layer(rpn_cls_score, "anchor")
       # Try to have a deterministic order for the computing graph, for reproducibility
+      # 尝试使用确定的计算图顺序（为了再现性）
       with tf.control_dependencies([rpn_labels]):
         rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
     else:
+      # 对于测试使用不同的模式
       if cfg.TEST.MODE == 'nms':
         rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
       elif cfg.TEST.MODE == 'top':
@@ -380,11 +411,14 @@ class Network(object):
 
     return rois
 
+  # 区域分类层
   def _region_classification(self, fc7, is_training, initializer, initializer_bbox):
+    # 全连接层从fc7连接到分类类别数
     cls_score = slim.fully_connected(fc7, self._num_classes, 
                                        weights_initializer=initializer,
                                        trainable=is_training,
                                        activation_fn=None, scope='cls_score')
+    # softmax层，以下部分待细化。
     cls_prob = self._softmax_layer(cls_score, "cls_prob")
     cls_pred = tf.argmax(cls_score, axis=1, name="cls_pred")
     bbox_pred = slim.fully_connected(fc7, self._num_classes * 4, 
@@ -418,7 +452,7 @@ class Network(object):
                           anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2)):
     # 输入图像
     self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
-    # 输入图像信息（？）
+    # 输入图像信息（[height, width, channel]）
     self._im_info = tf.placeholder(tf.float32, shape=[3])
     # ？
     self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 5])
