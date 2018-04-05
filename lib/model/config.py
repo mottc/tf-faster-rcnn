@@ -314,6 +314,7 @@ __C.USE_GPU_NMS = True
 __C.POOLING_MODE = 'crop'
 
 # Size of the pooled region after RoI pooling
+# ROI pooling后区域的大小
 __C.POOLING_SIZE = 7
 
 # Anchor scales for RPN
