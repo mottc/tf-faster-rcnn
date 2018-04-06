@@ -34,7 +34,7 @@ class imdb(object):
         # Use this dict for storing dataset specific config options
         self.config = {}
 
-    ## 属性函数self.roidb即可调用
+    ## 属性函数self.name即可调用
     @property
     def name(self):
         return self._name
@@ -108,7 +108,7 @@ class imdb(object):
     def _get_widths(self):
         return [PIL.Image.open(self.image_path_at(i)).size[0]
                 for i in range(self.num_images)]
-
+    ## 对所有原始图像进行水平翻转
     def append_flipped_images(self):
         num_images = self.num_images
         widths = self._get_widths()
@@ -127,6 +127,7 @@ class imdb(object):
                      'gt_classes': self.roidb[i]['gt_classes'],
                      'flipped': True}
             self.roidb.append(entry)
+        ## 数量变为原来的2倍
         self._image_index = self._image_index * 2
 
     def evaluate_recall(self, candidate_boxes=None, thresholds=None,
@@ -153,7 +154,9 @@ class imdb(object):
                        [256 ** 2, 512 ** 2],  # 256-512
                        [512 ** 2, 1e5 ** 2],  # 512-inf
                        ]
+        ## 断言area在areas内
         assert area in areas, 'unknown area range: {}'.format(area)
+        ## area所在区间
         area_range = area_ranges[areas[area]]
         gt_overlaps = np.zeros(0)
         num_pos = 0
@@ -220,21 +223,29 @@ class imdb(object):
                 'gt_overlaps': gt_overlaps}
 
     def create_roidb_from_box_list(self, box_list, gt_roidb):
+        ## 断言box_list的数目和图像数目一样，这里box_list[i]里存的是相应第i张图像里所有的bbox的坐标
         assert len(box_list) == self.num_images, \
             'Number of boxes must match number of ground-truth images'
         roidb = []
         for i in range(self.num_images):
             boxes = box_list[i]
+            ## 第i张图片中的box数目
             num_boxes = boxes.shape[0]
             overlaps = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
-
+            ## 计算每个box和每一类目标的重叠率
             if gt_roidb is not None and gt_roidb[i]['boxes'].size > 0:
+                ## 取得ground-truth里bbox的坐标
                 gt_boxes = gt_roidb[i]['boxes']
+                ## 取得每个bbox对应的类别
                 gt_classes = gt_roidb[i]['gt_classes']
+                ## 计算roidb的bbox与ground-truth的bbox的重叠率
                 gt_overlaps = bbox_overlaps(boxes.astype(np.float),
                                             gt_boxes.astype(np.float))
+                ## 最大重叠率所在位置
                 argmaxes = gt_overlaps.argmax(axis=1)
+                ## 最大重叠率的值
                 maxes = gt_overlaps.max(axis=1)
+                ## ？
                 I = np.where(maxes > 0)[0]
                 overlaps[I, gt_classes[argmaxes[I]]] = maxes[I]
 
