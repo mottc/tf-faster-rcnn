@@ -9,7 +9,7 @@
 #注释备忘录
 #1.gt_image的用途?来源？（visualization模块）
 #2._predictions的内容？（具体网络模块，resnet_v1.py)
-#3.生成anchor函数generate_anchors_pre（位于layer_utils.snippets模块）
+
 #4.生成候选区域的层proposal_layer（位于layer_utils.proposal_layer 模块）
 #5.tag的内容？含义？
 #---------------------------------------------------------
@@ -235,7 +235,7 @@ class Network(object):
       # 窗口的高宽
       height = tf.to_int32(tf.ceil(self._im_info[0] / np.float32(self._feat_stride[0])))
       width = tf.to_int32(tf.ceil(self._im_info[1] / np.float32(self._feat_stride[0])))
-      # 生成anchor
+      # 生成anchor，以及总anchor数量
       anchors, anchor_length = generate_anchors_pre(
         height,
         width,
@@ -243,6 +243,7 @@ class Network(object):
         self._anchor_scales,
         self._anchor_ratios
       )
+      #设置anchor大小
       anchors.set_shape([None, 4])
       anchor_length.set_shape([])
       self._anchors = anchors

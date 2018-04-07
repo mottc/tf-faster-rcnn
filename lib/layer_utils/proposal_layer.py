@@ -1,3 +1,4 @@
+#-*-coding:utf-8 -*-
 # --------------------------------------------------------
 # Faster R-CNN
 # Licensed under The MIT License [see LICENSE for details]
@@ -13,7 +14,7 @@ from model.config import cfg
 from model.bbox_transform import bbox_transform_inv, clip_boxes, bbox_transform_inv_tf, clip_boxes_tf
 from model.nms_wrapper import nms
 
-
+#生成候选区域层
 def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, anchors, num_anchors):
   if type(cfg_key) == bytes:
     cfg_key = cfg_key.decode('utf-8')

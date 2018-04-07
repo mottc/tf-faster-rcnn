@@ -49,9 +49,11 @@ def generate_anchors(base_size=16, ratios=[0.5, 1, 2],
   #基于16*16大小的窗口，根据不同的scalar和长宽比生成anchor
   #base_anchor为np数组 [0,0,15,15]
   base_anchor = np.array([1, 1, base_size, base_size]) - 1
+  #长宽比anchor
   ratio_anchors = _ratio_enum(base_anchor, ratios)
   anchors = np.vstack([_scale_enum(ratio_anchors[i, :], scales)
                        for i in range(ratio_anchors.shape[0])])
+  #生成的anchor长宽比[0.5,1,2] 基础大小[128, 256, 512]
   return anchors
 
 
@@ -77,6 +79,8 @@ def _mkanchors(ws, hs, x_ctr, y_ctr):
 
   ws = ws[:, np.newaxis]
   hs = hs[:, np.newaxis]
+  #生成的anchor为np数组
+  #anchor坐标为左上xy，右下xy
   anchors = np.hstack((x_ctr - 0.5 * (ws - 1),
                        y_ctr - 0.5 * (hs - 1),
                        x_ctr + 0.5 * (ws - 1),
@@ -94,9 +98,10 @@ def _ratio_enum(anchor, ratios):
   size_ratios = size / ratios #[512,256,128]
 
   #宽度
-  ws = np.round(np.sqrt(size_ratios)) #[32,16,8]
+  ws = np.round(np.sqrt(size_ratios)) #[22,16,11]
   #高度
-  hs = np.round(ws * ratios) #[16,16,16]
+  hs = np.round(ws * ratios) #[11,16,22]
+  #生成anchor
   anchors = _mkanchors(ws, hs, x_ctr, y_ctr)
   return anchors
 
@@ -105,9 +110,9 @@ def _scale_enum(anchor, scales):
   """
   Enumerate a set of anchors for each scale wrt an anchor.
   """
-
+  #缩放枚举
   w, h, x_ctr, y_ctr = _whctrs(anchor)
-  ws = w * scales
+  ws = w * scales 
   hs = h * scales
   anchors = _mkanchors(ws, hs, x_ctr, y_ctr)
   return anchors
