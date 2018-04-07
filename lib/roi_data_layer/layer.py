@@ -34,6 +34,7 @@ class RoIDataLayer(object):
     # If the random flag is set, 
     # then the database is shuffled according to system time
     # Useful for the validation set
+    ## 将np.arange(len(self._roidb))随机排序，返回该随机排序的array
     if self._random:
       st0 = np.random.get_state()
       millis = int(round(time.time() * 1000)) % 4294967295
@@ -61,6 +62,7 @@ class RoIDataLayer(object):
       
     self._cur = 0
 
+  ## 依次取batch大小个roi的index
   def _get_next_minibatch_inds(self):
     """Return the roidb indices for the next minibatch."""
     
@@ -78,7 +80,9 @@ class RoIDataLayer(object):
     If cfg.TRAIN.USE_PREFETCH is True, then blobs will be computed in a
     separate process and made available through self._blob_queue.
     """
+    ## 取到下一个batch的引索
     db_inds = self._get_next_minibatch_inds()
+    ## 把对应引索的图像信息（dict）取出，放去一个列表
     minibatch_db = [self._roidb[i] for i in db_inds]
     return get_minibatch(minibatch_db, self._num_classes)
       
