@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 import os
 import pickle
 import numpy as np
-
+## 提取有用信息
 def parse_rec(filename):
   """ Parse a PASCAL VOC xml file """
   tree = ET.parse(filename)
@@ -31,7 +31,7 @@ def parse_rec(filename):
 
   return objects
 
-
+## 计算平均准确率
 def voc_ap(rec, prec, use_07_metric=False):
   """ ap = voc_ap(rec, prec, [use_07_metric])
   Compute VOC AP given precision and recall.
@@ -65,7 +65,7 @@ def voc_ap(rec, prec, use_07_metric=False):
     ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
   return ap
 
-
+## 评估
 def voc_eval(detpath,
              annopath,
              imagesetfile,
@@ -100,6 +100,7 @@ def voc_eval(detpath,
   # cachedir caches the annotations in a pickle file
 
   # first load gt
+  ## 先从anno提取出真实标注
   if not os.path.isdir(cachedir):
     os.mkdir(cachedir)
   cachefile = os.path.join(cachedir, '%s_annots.pkl' % imagesetfile)
@@ -110,6 +111,7 @@ def voc_eval(detpath,
 
   if not os.path.isfile(cachefile):
     # load annotations
+    ## 每张存一个字典
     recs = {}
     for i, imagename in enumerate(imagenames):
       recs[imagename] = parse_rec(annopath.format(imagename))
@@ -131,6 +133,7 @@ def voc_eval(detpath,
   # extract gt objects for this class
   class_recs = {}
   npos = 0
+  ## 遍历每一个anno，若当前图片的anno有当前类别存入class_recs
   for imagename in imagenames:
     R = [obj for obj in recs[imagename] if obj['name'] == classname]
     bbox = np.array([x['bbox'] for x in R])
@@ -145,21 +148,26 @@ def voc_eval(detpath,
                              'det': det}
 
   # read dets
+  ## detpath已经完整，错误？？
   detfile = detpath.format(classname)
   with open(detfile, 'r') as f:
     lines = f.readlines()
-
+  ## 每行读取，以空格分割
   splitlines = [x.strip().split(' ') for x in lines]
+  ## 第一个值为图片编号
   image_ids = [x[0] for x in splitlines]
+  ## 第二个值为概率
   confidence = np.array([float(x[1]) for x in splitlines])
+  ## 边框坐标
   BB = np.array([[float(z) for z in x[2:]] for x in splitlines])
-
+  ## 每一类图片数
   nd = len(image_ids)
   tp = np.zeros(nd)
   fp = np.zeros(nd)
 
   if BB.shape[0] > 0:
     # sort by confidence
+    ## 按照概率排序，得到排序后的图片编号顺序
     sorted_ind = np.argsort(-confidence)
     sorted_scores = np.sort(-confidence)
     BB = BB[sorted_ind, :]
@@ -171,9 +179,11 @@ def voc_eval(detpath,
       bb = BB[d, :].astype(float)
       ovmax = -np.inf
       BBGT = R['bbox'].astype(float)
-
+      ## bb为预测值，BBGT为GT
       if BBGT.size > 0:
+        ## 计算IOU
         # compute overlaps
+        ## 计算交集面积
         # intersection
         ixmin = np.maximum(BBGT[:, 0], bb[0])
         iymin = np.maximum(BBGT[:, 1], bb[1])
@@ -182,7 +192,7 @@ def voc_eval(detpath,
         iw = np.maximum(ixmax - ixmin + 1., 0.)
         ih = np.maximum(iymax - iymin + 1., 0.)
         inters = iw * ih
-
+        ## 计算并集面积
         # union
         uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
                (BBGT[:, 2] - BBGT[:, 0] + 1.) *
@@ -191,7 +201,7 @@ def voc_eval(detpath,
         overlaps = inters / uni
         ovmax = np.max(overlaps)
         jmax = np.argmax(overlaps)
-
+      ## 若IOU最大值大于阈值，则真阳性，否则假阳性
       if ovmax > ovthresh:
         if not R['difficult'][jmax]:
           if not R['det'][jmax]:
@@ -203,11 +213,13 @@ def voc_eval(detpath,
         fp[d] = 1.
 
   # compute precision recall
+  ## 计算召回率
   fp = np.cumsum(fp)
   tp = np.cumsum(tp)
   rec = tp / float(npos)
   # avoid divide by zero in case the first detection matches a difficult
   # ground truth
+  ## 计算准确率
   prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
   ap = voc_ap(rec, prec, use_07_metric)
 

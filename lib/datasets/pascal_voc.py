@@ -34,6 +34,12 @@ class pascal_voc(imdb):
     imdb.__init__(self, name)
     self._year = year
     self._image_set = image_set
+    ## VOCdevkit
+    ##    |---VOC2007
+    ##    |---VOC2012
+    ##           |---Annotation
+    ##           |---ImageSets
+    ##           |---JPEGImages
     self._devkit_path = self._get_default_path()
     self._data_path = os.path.join(self._devkit_path, 'VOC' + self._year)
     self._classes = ('__background__',  # always index 0
@@ -47,7 +53,7 @@ class pascal_voc(imdb):
     self._class_to_ind = dict(list(zip(self.classes, list(range(self.num_classes)))))
     ## 图片格式
     self._image_ext = '.jpg'
-    ## 一个列表，包含对应数据集图像名称信息，如[000001,000007,...,000267]
+    ## 一个列表，包含对应数据集图像名称信息，如[2008_000001,2008_000007,...,2008_000267]
     self._image_index = self._load_image_set_index()
     # Default to roidb handler
     self._roidb_handler = self.gt_roidb
@@ -91,6 +97,7 @@ class pascal_voc(imdb):
     """
     # Example path to image set file:
     # self._devkit_path + /VOCdevkit2007/VOC2007/ImageSets/Main/val.txt
+    ## Main下存放的是图像物体识别的数据，总共分为20类
     image_set_file = os.path.join(self._data_path, 'ImageSets', 'Main',
                                   self._image_set + '.txt')
     assert os.path.exists(image_set_file), \
