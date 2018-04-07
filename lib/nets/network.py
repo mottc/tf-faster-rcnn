@@ -227,10 +227,12 @@ class Network(object):
 
       return rois, roi_scores
 
+  #建立anchor
   def _anchor_component(self):
     with tf.variable_scope('ANCHOR_' + self._tag) as scope:
       # just to get the shape right
-      # 窗口的高宽（？）
+      # _feat_stride特征窗口步长？
+      # 窗口的高宽
       height = tf.to_int32(tf.ceil(self._im_info[0] / np.float32(self._feat_stride[0])))
       width = tf.to_int32(tf.ceil(self._im_info[1] / np.float32(self._feat_stride[0])))
       # 生成anchor
@@ -361,7 +363,8 @@ class Network(object):
 
   #建立候选区域网络
   def _region_proposal(self, net_conv, is_training, initializer):
-    # RPN_CHANNELS 卷积核个数（512）
+    
+# RPN_CHANNELS 卷积核个数（512）
     # 卷积层（核大小3*3）,获取rpn
     rpn = slim.conv2d(net_conv, cfg.RPN_CHANNELS, [3, 3], trainable=is_training, weights_initializer=initializer,
                         scope="rpn_conv/3x3")

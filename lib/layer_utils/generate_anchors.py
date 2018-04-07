@@ -1,3 +1,4 @@
+#-*-coding:utf-8 -*-
 # --------------------------------------------------------
 # Faster R-CNN
 # Copyright (c) 2015 Microsoft
@@ -38,13 +39,15 @@ import numpy as np
 #       [ -79., -167.,   96.,  184.],
 #       [-167., -343.,  184.,  360.]])
 
+#生成anchor窗口
 def generate_anchors(base_size=16, ratios=[0.5, 1, 2],
                      scales=2 ** np.arange(3, 6)):
   """
   Generate anchor (reference) windows by enumerating aspect ratios X
   scales wrt a reference (0, 0, 15, 15) window.
   """
-
+  #基于16*16大小的窗口，根据不同的scalar和长宽比生成anchor
+  #base_anchor为np数组 [0,0,15,15]
   base_anchor = np.array([1, 1, base_size, base_size]) - 1
   ratio_anchors = _ratio_enum(base_anchor, ratios)
   anchors = np.vstack([_scale_enum(ratio_anchors[i, :], scales)
@@ -55,6 +58,7 @@ def generate_anchors(base_size=16, ratios=[0.5, 1, 2],
 def _whctrs(anchor):
   """
   Return width, height, x center, and y center for an anchor (window).
+  返回窗口的宽，高，中心点x，中心点y
   """
 
   w = anchor[2] - anchor[0] + 1
@@ -68,6 +72,7 @@ def _mkanchors(ws, hs, x_ctr, y_ctr):
   """
   Given a vector of widths (ws) and heights (hs) around a center
   (x_ctr, y_ctr), output a set of anchors (windows).
+  围绕中心坐标点生成高宽向量，输出为anchor集合
   """
 
   ws = ws[:, np.newaxis]
@@ -83,12 +88,15 @@ def _ratio_enum(anchor, ratios):
   """
   Enumerate a set of anchors for each aspect ratio wrt an anchor.
   """
-
+  #长宽比枚举
   w, h, x_ctr, y_ctr = _whctrs(anchor)
-  size = w * h
-  size_ratios = size / ratios
-  ws = np.round(np.sqrt(size_ratios))
-  hs = np.round(ws * ratios)
+  size = w * h 
+  size_ratios = size / ratios #[512,256,128]
+
+  #宽度
+  ws = np.round(np.sqrt(size_ratios)) #[32,16,8]
+  #高度
+  hs = np.round(ws * ratios) #[16,16,16]
   anchors = _mkanchors(ws, hs, x_ctr, y_ctr)
   return anchors
 
