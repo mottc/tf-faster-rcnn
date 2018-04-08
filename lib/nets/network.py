@@ -94,11 +94,11 @@ class Network(object):
       # 将通道转换为caffe格式
       to_caffe = tf.transpose(bottom, [0, 3, 1, 2])
       # then force it to have channel 2
-      # 强制其拥有通道2（？）
-      reshaped = tf.reshape(to_caffe,
+      # 令通道为2
+      reshaped = tf.reshape(to_caffe, #[1,2,-1,width]
                             tf.concat(axis=0, values=[[1, num_dim, -1], [input_shape[2]]]))
       # then swap the channel back
-      # 再将channel转换回去
+      # 再将数据转换为tf格式
       to_tf = tf.transpose(reshaped, [0, 2, 3, 1])
       return to_tf
 
@@ -365,18 +365,19 @@ class Network(object):
   #建立候选区域网络
   def _region_proposal(self, net_conv, is_training, initializer):
     
-# RPN_CHANNELS 卷积核个数（512）
+    # RPN_CHANNELS 卷积核个数（512）
     # 卷积层（核大小3*3）,获取rpn
     rpn = slim.conv2d(net_conv, cfg.RPN_CHANNELS, [3, 3], trainable=is_training, weights_initializer=initializer,
                         scope="rpn_conv/3x3")
     self._act_summaries.append(rpn)
     # 卷积层（核大小1*1），个数anchor个数两倍
+    # rpn_cls_score：rpn classes score。候选区域类别得分
     rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
                                 padding='VALID', activation_fn=None, scope='rpn_cls_score')
     
     # change it so that the score has 2 as its channel size
-    # 将score的大小设置为其channel大小的两倍（？）
+    # 将score的channel设置为2
     rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
     # softmax预测层
     rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape")
