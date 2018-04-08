@@ -35,12 +35,22 @@ class coco(imdb):
     self._image_set = image_set
     self._data_path = osp.join(cfg.DATA_DIR, 'coco')
     # load COCO API, classes, class <-> id mappings
+    ## 标注数据
     self._COCO = COCO(self._get_ann_file())
+    ## 种类
+    ## categories[{
+    ##    "id" : int,
+    ##    "name" : str,
+    ##    "supercategory" : str,
+    ## }]
     cats = self._COCO.loadCats(self._COCO.getCatIds())
+    ## '__background__'加全类别
     self._classes = tuple(['__background__'] + [c['name'] for c in cats])
+    ## 类别与ID对应
     self._class_to_ind = dict(list(zip(self.classes, list(range(self.num_classes)))))
     self._class_to_coco_cat_id = dict(list(zip([c['name'] for c in cats],
                                                self._COCO.getCatIds())))
+    ## 所有图片ID索引
     self._image_index = self._load_image_set_index()
     # Default to roidb handler
     self.set_proposal_method('gt')
@@ -55,6 +65,7 @@ class coco(imdb):
       'test-dev2015': 'test2015',
     }
     coco_name = image_set + year  # e.g., "val2014"
+    ## 名称
     self._data_name = (self._view_map[coco_name]
                        if coco_name in self._view_map
                        else coco_name)
@@ -63,6 +74,7 @@ class coco(imdb):
     self._gt_splits = ('train', 'val', 'minival')
 
   def _get_ann_file(self):
+    ## 不包含"test"，则为'instance',否则为'image_info'
     prefix = 'instances' if self._image_set.find('test') == -1 \
       else 'image_info'
     return osp.join(self._data_path, 'annotations',
@@ -101,10 +113,12 @@ class coco(imdb):
     return image_path
 
   def gt_roidb(self):
+    ## ground-truth ROI
     """
     Return the database of ground-truth regions of interest.
     This function loads/saves from/to a cache file to speed up future calls.
     """
+    ## 已有缓存，则从缓存加载
     cache_file = osp.join(self.cache_path, self.name + '_gt_roidb.pkl')
     if osp.exists(cache_file):
       with open(cache_file, 'rb') as fid:
@@ -126,14 +140,17 @@ class coco(imdb):
     handled by marking their overlaps (with all categories) to -1. This
     overlap value means that crowd "instances" are excluded from training.
     """
+    ## 获取一张图片的信息
     im_ann = self._COCO.loadImgs(index)[0]
     width = im_ann['width']
     height = im_ann['height']
-
+    ## 图片中标注对应的ID
     annIds = self._COCO.getAnnIds(imgIds=index, iscrowd=None)
+    ## 根据标注ID，返回标注信息
     objs = self._COCO.loadAnns(annIds)
     # Sanitize bboxes -- some are invalid
     valid_objs = []
+    ## 获取BBox
     for obj in objs:
       x1 = np.max((0, obj['bbox'][0]))
       y1 = np.max((0, obj['bbox'][1]))
@@ -155,7 +172,7 @@ class coco(imdb):
     coco_cat_id_to_class_ind = dict([(self._class_to_coco_cat_id[cls],
                                       self._class_to_ind[cls])
                                      for cls in self._classes[1:]])
-
+    ## 构造要存的数据结构
     for ix, obj in enumerate(objs):
       cls = coco_cat_id_to_class_ind[obj['category_id']]
       boxes[ix, :] = obj['clean_bbox']
@@ -169,6 +186,7 @@ class coco(imdb):
         overlaps[ix, cls] = 1.0
 
     ds_utils.validate_boxes(boxes, width=width, height=height)
+    ## 稀疏矩阵压缩
     overlaps = scipy.sparse.csr_matrix(overlaps)
     return {'width': width,
             'height': height,
@@ -180,7 +198,7 @@ class coco(imdb):
 
   def _get_widths(self):
     return [r['width'] for r in self.roidb]
-
+  ## 水平翻转
   def append_flipped_images(self):
     num_images = self.num_images
     widths = self._get_widths()
