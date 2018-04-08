@@ -17,17 +17,17 @@ def unique_boxes(boxes, scale=1.0):
   _, index = np.unique(hashes, return_index=True)
   return np.sort(index)
 
-
+## 点与边->两点
 def xywh_to_xyxy(boxes):
   """Convert [x y w h] box format to [x1 y1 x2 y2] format."""
   return np.hstack((boxes[:, 0:2], boxes[:, 0:2] + boxes[:, 2:4] - 1))
 
-
+## 两点->点边
 def xyxy_to_xywh(boxes):
   """Convert [x1 y1 x2 y2] box format to [x y w h] format."""
   return np.hstack((boxes[:, 0:2], boxes[:, 2:4] - boxes[:, 0:2] + 1))
 
-
+## 判断boxes的有效性
 def validate_boxes(boxes, width=0, height=0):
   """Check that a set of boxes are valid."""
   x1 = boxes[:, 0]
@@ -41,7 +41,7 @@ def validate_boxes(boxes, width=0, height=0):
   assert (x2 < width).all()
   assert (y2 < height).all()
 
-
+## 当box的两边长都小于min_size，将其过滤掉
 def filter_small_boxes(boxes, min_size):
   w = boxes[:, 2] - boxes[:, 0]
   h = boxes[:, 3] - boxes[:, 1]
