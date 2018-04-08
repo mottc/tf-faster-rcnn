@@ -1,5 +1,6 @@
 #-*-coding:utf-8 -*-
-# --------------------------------------------------------
+
+# --------------------------------------------------------
 # Tensorflow Faster R-CNN
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Xinlei Chen
@@ -46,8 +47,10 @@ def generate_anchors_pre(height, width, feat_stride=16, anchor_scales=(8, 16, 32
   anchors = generate_anchors(ratios=np.array(anchor_ratios), scales=np.array(anchor_scales))
   #A为anchor个数
   A = anchors.shape[0]
+  #申明tf图中的常量
   anchor_constant = tf.constant(anchors.reshape((1, A, 4)), dtype=tf.int32)
-
+  #anchor+偏移量
+  #length为总anchor数量
   length = K * A
   anchors_tf = tf.reshape(tf.add(anchor_constant, shifts), shape=(length, 4))
   
