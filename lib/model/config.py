@@ -230,6 +230,7 @@ __C.TEST.HAS_RPN = False
 __C.TEST.PROPOSAL_METHOD = 'gt'
 
 ## NMS threshold used on RPN proposals
+# NMS候选区域阈值
 __C.TEST.RPN_NMS_THRESH = 0.7
 
 # Number of top scoring boxes to keep before apply NMS to RPN proposals
