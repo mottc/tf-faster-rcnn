@@ -101,12 +101,17 @@ class Network(object):
       # 再将数据转换为tf格式
       to_tf = tf.transpose(reshaped, [0, 2, 3, 1])
       return to_tf
-
+    
+  #softmax分类层
   def _softmax_layer(self, bottom, name):
+    #匹配name字符串开头
     if name.startswith('rpn_cls_prob_reshape'):
       input_shape = tf.shape(bottom)
+      #将tensor转换为[-1,channel]大小
       bottom_reshaped = tf.reshape(bottom, [-1, input_shape[-1]])
+      #softmax分类层
       reshaped_score = tf.nn.softmax(bottom_reshaped, name=name)
+      #返回结果
       return tf.reshape(reshaped_score, input_shape)
     return tf.nn.softmax(bottom, name=name)
 
@@ -377,15 +382,15 @@ class Network(object):
                                 padding='VALID', activation_fn=None, scope='rpn_cls_score')
     
     # change it so that the score has 2 as its channel size
-    # 将score的channel设置为2
+    # 将score的channel设置为2（[1,-1,width,2])
     rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
-    # softmax预测层
+    # softmax预测层（内部reshape为[-1,2]大小）
     rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape")
     # 返回两个score的最大值下标
     rpn_cls_pred = tf.argmax(tf.reshape(rpn_cls_score_reshape, [-1, 2]), axis=1, name="rpn_cls_pred")
-    # ？
+    # 输入[1,-1,width,2] 输出 [1,height,width,anchor_num*2]
     rpn_cls_prob = self._reshape_layer(rpn_cls_prob_reshape, self._num_anchors * 2, "rpn_cls_prob")
-    #包围盒预测
+    #包围盒预测 [1,height,width,anchor_num*4]
     rpn_bbox_pred = slim.conv2d(rpn, self._num_anchors * 4, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
                                 padding='VALID', activation_fn=None, scope='rpn_bbox_pred')
@@ -447,7 +452,7 @@ class Network(object):
   # 建立网络结构计算图
   """
   参数：
-    mode 模式（？）
+    mode 模式（训练 or 测试）
     num_classes 分类个数
     tag 标签（？）
     anchor_scales anchor的不同缩放
