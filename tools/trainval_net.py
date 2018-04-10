@@ -62,6 +62,7 @@ def parse_args():#获取命令转换为参数
 
 
 def combined_roidb(imdb_names):#整合多个roidb（如果有的话）
+  ## 多个数据集名称以‘+’连接
   """
   Combine multiple roidbs
   """
@@ -71,6 +72,7 @@ def combined_roidb(imdb_names):#整合多个roidb（如果有的话）
     ## 内容里有该类里的各种self名称与操作，包括roi信息等等
     imdb = get_imdb(imdb_name)
     print('Loaded dataset `{:s}` for training'.format(imdb.name))
+    ## __C.TRAIN.PROPOSAL_METHOD = 'gt'
     imdb.set_proposal_method(cfg.TRAIN.PROPOSAL_METHOD)
     print('Set proposal method: {:s}'.format(cfg.TRAIN.PROPOSAL_METHOD))
     ## get_training_roidb函数返回imdb对象的各种roi与图片信息，用于训练
