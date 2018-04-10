@@ -102,8 +102,8 @@ class coco(imdb):
     """
     Construct an image path from the image's "index" identifier.
     """
-    # Example image path for index=119993:
-    #   images/train2014/COCO_train2014_000000119993.jpg
+    ## Example image path for index=119993:
+    ## images/train2014/COCO_train2014_000000119993.jpg
     file_name = ('COCO_' + self._data_name + '_' +
                  str(index).zfill(12) + '.jpg')
     image_path = osp.join(self._data_path, 'images',
@@ -111,7 +111,7 @@ class coco(imdb):
     assert osp.exists(image_path), \
       'Path does not exist: {}'.format(image_path)
     return image_path
-
+  ## 未被调用？
   def gt_roidb(self):
     ## ground-truth ROI
     """
@@ -276,6 +276,7 @@ class coco(imdb):
   def _coco_results_one_category(self, boxes, cat_id):
     results = []
     for im_ind, index in enumerate(self.image_index):
+      ## 每张图片当前类别的boxes
       dets = boxes[im_ind].astype(np.float)
       if dets == []:
         continue
@@ -284,6 +285,7 @@ class coco(imdb):
       ys = dets[:, 1]
       ws = dets[:, 2] - xs + 1
       hs = dets[:, 3] - ys + 1
+      ## 遍历每一个box，存入result
       results.extend(
         [{'image_id': index,
           'category_id': cat_id,
@@ -303,6 +305,7 @@ class coco(imdb):
       print('Collecting {} results ({:d}/{:d})'.format(cls, cls_ind,
                                                        self.num_classes - 1))
       coco_cat_id = self._class_to_coco_cat_id[cls]
+      ## 选出特定分类的box
       results.extend(self._coco_results_one_category(all_boxes[cls_ind],
                                                      coco_cat_id))
     print('Writing results json to {}'.format(res_file))
@@ -317,6 +320,7 @@ class coco(imdb):
     if self.config['use_salt']:
       res_file += '_{}'.format(str(uuid.uuid4()))
     res_file += '.json'
+    ## 把结果写入json文件中
     self._write_coco_results_file(all_boxes, res_file)
     # Only do evaluation on non-test sets
     if self._image_set.find('test') == -1:

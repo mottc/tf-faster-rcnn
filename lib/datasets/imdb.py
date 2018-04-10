@@ -23,6 +23,7 @@ class imdb(object):
     def __init__(self, name, classes=None):
         self._name = name
         self._num_classes = 0
+        ## 类别表为空不为空
         if not classes:
             self._classes = []
         else:
@@ -32,6 +33,7 @@ class imdb(object):
         self._roidb = None
         self._roidb_handler = self.default_roidb
         # Use this dict for storing dataset specific config options
+        ## 特殊配置
         self.config = {}
 
     ## 属性函数self.name即可调用
@@ -54,7 +56,7 @@ class imdb(object):
     @property
     def roidb_handler(self):
         return self._roidb_handler
-
+    ## 可赋值
     @roidb_handler.setter
     def roidb_handler(self, val):
         self._roidb_handler = val
@@ -245,7 +247,7 @@ class imdb(object):
                 argmaxes = gt_overlaps.argmax(axis=1)
                 ## 最大重叠率的值
                 maxes = gt_overlaps.max(axis=1)
-                ## ？
+                ## 去除0值
                 I = np.where(maxes > 0)[0]
                 overlaps[I, gt_classes[argmaxes[I]]] = maxes[I]
 
