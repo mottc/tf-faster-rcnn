@@ -43,7 +43,7 @@ def prepare_roidb(imdb):
     # gt class that had the max overlap
     ## 取出最大值对应引索
     max_classes = gt_overlaps.argmax(axis=1)
-    ## 在roidb列表中的图片信息dict中添加两个信息
+    ## 在roidb列表中的图片信息dict中添加两个信息,每个box对应的类别及其概率
     roidb[i]['max_classes'] = max_classes
     roidb[i]['max_overlaps'] = max_overlaps
     # sanity checks
