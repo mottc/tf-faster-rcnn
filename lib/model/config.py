@@ -90,10 +90,12 @@ __C.TRAIN.FG_FRACTION = 0.25
 
 # Overlap threshold for a ROI to be considered foreground (if >= FG_THRESH)
 # ROI被认定为前景的（与Ground Truth？）重叠阈值
+## 训练时，若当前ROI对应的概率大于0.5，认为它是前景
 __C.TRAIN.FG_THRESH = 0.5
 
 # Overlap threshold for a ROI to be considered background (class = 0 if
 # overlap in [LO, HI))  ROI被认定为背景的重叠阈值
+## 训练时，若当前ROI对应的概率大于0.1小于0.5，认为它是背景
 __C.TRAIN.BG_THRESH_HI = 0.5
 __C.TRAIN.BG_THRESH_LO = 0.1
 

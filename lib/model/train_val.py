@@ -176,6 +176,7 @@ class SolverWrapper(object):
 
   def find_previous(self):
     # 查找tensoflow的checkpoint相关文件
+    ## 对符合名称要求的文件按照时间排序
     sfiles = os.path.join(self.output_dir, cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_*.ckpt.meta')
     sfiles = glob.glob(sfiles)
     sfiles.sort(key=os.path.getmtime)
@@ -274,11 +275,13 @@ class SolverWrapper(object):
   def train_model(self, sess, max_iters):
     # Build data layers for both training and validation set
     # 建立训练集和测试集的data layer（？）
+    ## 数据输入层，随机排序
     self.data_layer = RoIDataLayer(self.roidb, self.imdb.num_classes)
     self.data_layer_val = RoIDataLayer(self.valroidb, self.imdb.num_classes, random=True)
 
     # Construct the computation graph
     # 建立计算图
+    ## 返回学习率和训练操作
     lr, train_op = self.construct_graph(sess)
 
     # Find previous snapshots if there is any to restore from

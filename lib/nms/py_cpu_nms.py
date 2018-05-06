@@ -6,7 +6,7 @@
 # --------------------------------------------------------
 
 import numpy as np
-
+## 非最大值抑制
 def py_cpu_nms(dets, thresh):
     """Pure Python NMS baseline."""
     x1 = dets[:, 0]
@@ -14,14 +14,16 @@ def py_cpu_nms(dets, thresh):
     x2 = dets[:, 2]
     y2 = dets[:, 3]
     scores = dets[:, 4]
-
+    ## 单个框面积大小
     areas = (x2 - x1 + 1) * (y2 - y1 + 1)
-    order = scores.argsort()[::-1]
+    ## 按照得分值从大到小将序号排列
+    order = scores.argsort()[::-1] ## [::-1]倒序
 
     keep = []
     while order.size > 0:
         i = order[0]
-        keep.append(i)
+        keep.append(i) ## 得分最大的保留，保留值为序号
+
         xx1 = np.maximum(x1[i], x1[order[1:]])
         yy1 = np.maximum(y1[i], y1[order[1:]])
         xx2 = np.minimum(x2[i], x2[order[1:]])
