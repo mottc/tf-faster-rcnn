@@ -36,8 +36,8 @@ class pascal_voc(imdb):
     imdb.__init__(self, name)
     self._year = year
     self._image_set = image_set
-    ## VOCdevkit2012
-    ##    |---VOC2012
+    ## VOCdevkit2012   _devkit_path
+    ##    |---VOC2012     _data_path
     ##           |---Annotation
     ##           |---ImageSets
     ##           |---JPEGImages
@@ -99,6 +99,7 @@ class pascal_voc(imdb):
     # Example path to image set file:
     # self._devkit_path + /VOCdevkit2007/VOC2007/ImageSets/Main/val.txt
     ## Main下存放的是图像物体识别的数据，总共分为20类
+    ## TODO:是否存在一个文件里存放图片名称
     image_set_file = os.path.join(self._data_path, 'ImageSets', 'Main',
                                   self._image_set + '.txt')
     assert os.path.exists(image_set_file), \

@@ -68,7 +68,7 @@ def combined_roidb(imdb_names):#整合多个roidb（如果有的话）
   """
 
   def get_roidb(imdb_name):
-    ## imdb为存在一个字典(easydict)里的pascal_voc类的一个对象，e.g.{voc_2007_train:内容，voc_2007_val:内容，voc_2007_test:内容,voc_2007_test:内容,voc_2012_train:内容...}
+    ## imdb为pascal_voc类的一个对象
     ## 内容里有该类里的各种self名称与操作，包括roi信息等等
     imdb = get_imdb(imdb_name)
     print('Loaded dataset `{:s}` for training'.format(imdb.name))
