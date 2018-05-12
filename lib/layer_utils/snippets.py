@@ -40,18 +40,30 @@ def generate_anchors_pre(height, width, feat_stride=16, anchor_scales=(8, 16, 32
   #         [0,0,0,...,16,16,16...]
   #         [0,16,32,...,0,16,32,...]
   #         [0,0,0,...,16,16,16...]]
+
+  #
+  # shift [[0,0,0,0]
+  #       [16,0,16,0]
+  #       [32,0,32,0]
+  #       ...
+  #       [0,16,0,16]
+  #       ...
+  #       ]
+
   K = tf.multiply(width, height)
   shifts = tf.transpose(tf.reshape(shifts, shape=[1, K, 4]), perm=(1, 0, 2))
   # shifts.shape [K,1,4]
   # 生成anchor
   anchors = generate_anchors(ratios=np.array(anchor_ratios), scales=np.array(anchor_scales))
   #A为anchor个数
+  ## 9个
   A = anchors.shape[0]
   #申明tf图中的常量
   anchor_constant = tf.constant(anchors.reshape((1, A, 4)), dtype=tf.int32)
   #anchor+偏移量
   #length为总anchor数量
   length = K * A
+  ## 原始的9个anchor加偏移量，得到最终anchors
   anchors_tf = tf.reshape(tf.add(anchor_constant, shifts), shape=(length, 4))
   
   return tf.cast(anchors_tf, dtype=tf.float32), length

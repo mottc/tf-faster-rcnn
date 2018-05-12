@@ -76,7 +76,7 @@ def _draw_single_box(image, xmin, ymin, xmax, ymax, display_str, font, color='bl
 def draw_bounding_boxes(image, gt_boxes, im_info):
   num_boxes = gt_boxes.shape[0]
   gt_boxes_new = gt_boxes.copy()
-  gt_boxes_new[:,:4] = np.round(gt_boxes_new[:,:4].copy() / im_info[2]) ## ？
+  gt_boxes_new[:,:4] = np.round(gt_boxes_new[:,:4].copy() / im_info[2]) ## 根据缩放大小，把boxes大小恢复到与原图匹配
   disp_image = Image.fromarray(np.uint8(image[0]))
   ## 同一类别，边框颜色一样
   for i in range(num_boxes):
