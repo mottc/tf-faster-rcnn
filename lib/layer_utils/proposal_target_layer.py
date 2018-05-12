@@ -14,7 +14,7 @@ from model.config import cfg
 from model.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
 
-
+## 负责在训练RoIHead/Fast R-CNN的时候，从RoIs选择一部分(比如128个)用以训练
 def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
   """
   Assign object detection proposals to ground-truth targets. Produces proposal

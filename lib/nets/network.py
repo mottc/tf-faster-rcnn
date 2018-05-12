@@ -54,6 +54,7 @@ class Network(object):
   def _add_gt_image(self):
     # add back mean
     # 加回像素均值（？）
+    ## 图片BGR格式，并减去一个均值，使得图片像素的均值为0
     image = self._image + cfg.PIXEL_MEANS
     # BGR to RGB (opencv uses BGR)
     # BGR转换为RGB
@@ -238,6 +239,7 @@ class Network(object):
       # just to get the shape right
       # _feat_stride特征窗口步长？
       # 窗口的高宽
+      ## feature map高宽？
       height = tf.to_int32(tf.ceil(self._im_info[0] / np.float32(self._feat_stride[0])))
       width = tf.to_int32(tf.ceil(self._im_info[1] / np.float32(self._feat_stride[0])))
       # 生成anchor，以及总anchor数量
