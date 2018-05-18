@@ -110,7 +110,7 @@ def bbox_transform_inv_tf(boxes, deltas):
   #pre_w = e**dw * w
   #pre_h = e**dh * h
   pred_ctr_x = tf.add(tf.multiply(dx, widths), ctr_x)
-  pred_ctr_y = tf.add(tf.multiply(dy, widths), ctr_y)
+  pred_ctr_y = tf.add(tf.multiply(dy, heights), ctr_y)
   pred_w = tf.multiply(tf.exp(dw), widths)
   pred_h = tf.multiply(tf.exp(dh), heights)
 
